@@ -1,0 +1,8 @@
+.env
+.idea
+old_main.go
+checkInstaStories
+main
+dist/
+accounts/
+stories
