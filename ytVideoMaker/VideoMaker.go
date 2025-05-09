@@ -58,10 +58,11 @@ func downloadFormat(video *youtube.Video, format *youtube.Format, destination st
 	return nil
 }
 
-func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start int, end int) (string, error) {
+// Reeturn Title, destinarion folder, error
+func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start int, end int) (string, string, error) {
 	video, err := ytClient.GetVideo(videoUrl)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	destFolder := fmt.Sprintf("%s_%s_%d_%d", destFolderPrefix, video.ID, start, end)
@@ -118,6 +119,8 @@ func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start int, 
 		"libx264",
 		"-c:a",
 		"aac",
+		"-preset",
+		"ultrafast",
 		fmt.Sprintf("%s/output.mp4", destFolder),
 	}
 
@@ -132,7 +135,7 @@ func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start int, 
 
 	err = cmd.Run()
 	if err != nil {
-		return "", fmt.Errorf("ffmpeg merge failed: %w, stderr: %s", err, stderr.String())
+		return "", "", fmt.Errorf("ffmpeg merge failed: %w, stderr: %s", err, stderr.String())
 	}
-	return destFolder, nil
+	return video.Title, destFolder, nil
 }

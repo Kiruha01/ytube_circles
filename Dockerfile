@@ -31,7 +31,3 @@ COPY --from=builder /app/video-downloader .
 
 # Указываем точку входа
 ENTRYPOINT ["./video-downloader"]
-
-# Задаем переменные окружения по умолчанию
-ENV PROXY_URL=""
-ENV BOT_TOKEN=""
