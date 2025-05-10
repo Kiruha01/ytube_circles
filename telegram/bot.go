@@ -37,7 +37,7 @@ func (b *Bot) sendErrorMessage(chaiID int64, err error) {
 	log.Printf("process error: %s", err)
 
 	errorMessage := fmt.Sprintf("%s", err)
-	_, msg_err := b.bot.Send(tgbotapi.NewMessage(chaiID, fmt.Sprintf("Error: \n```\n%v\n```", errorMessage[len(errorMessage)-4000:])))
+	_, msg_err := b.bot.Send(tgbotapi.NewMessage(chaiID, fmt.Sprintf("Error: \n```\n%v\n```", errorMessage[len(errorMessage)-min(len(errorMessage), 4000):])))
 	if msg_err != nil {
 		log.Printf("Failed to send error message: %v", msg_err)
 	}
