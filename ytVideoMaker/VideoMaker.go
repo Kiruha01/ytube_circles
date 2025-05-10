@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -58,14 +59,56 @@ func downloadFormat(video *youtube.Video, format *youtube.Format, destination st
 	return nil
 }
 
+func encodeVideo(videoFile string, audioFile string, outFile string, start string, end string) error {
+	args := []string{
+		"-i",
+		videoFile,
+		//fmt.Sprintf("%s/video.mp4", destFolder),
+		"-i",
+		audioFile,
+		//fmt.Sprintf("%s/audio.mp4", destFolder),
+		"-vf",
+		"crop=ih:ih,scale=512:512",
+		"-ss",
+		start,
+		"-t",
+		end,
+		"-c:v",
+		"libx264",
+		"-c:a",
+		"aac",
+		"-preset",
+		"ultrafast",
+		outFile,
+		//fmt.Sprintf("%s/output.mp4", destFolder),
+	}
+
+	cmd := exec.Command(
+		"ffmpeg",
+		args...,
+	)
+
+	log.Printf("Running: %s %s", cmd.Path, strings.Join(cmd.Args, " "))
+
+	// Захватываем stderr для диагностики ошибок
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("ffmpeg merge failed: %w, stderr: %s", err, stderr.String())
+	}
+	return nil
+}
+
 // Reeturn Title, destinarion folder, error
-func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start int, end int) (string, string, error) {
+func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start float64, duration float64) (string, string, error) {
 	video, err := ytClient.GetVideo(videoUrl)
 	if err != nil {
 		return "", "", err
 	}
 
-	destFolder := fmt.Sprintf("%s_%s_%d_%d", destFolderPrefix, video.ID, start, end)
+	destFolder := fmt.Sprintf("%s_%s_%d_%d", destFolderPrefix, video.ID, start, duration)
 	err = os.Mkdir(destFolder, os.ModePerm)
 	if err != nil {
 		panic(err)
@@ -100,42 +143,20 @@ func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start int, 
 	defer os.Remove(fmt.Sprintf("%s/audio.mp4", destFolder))
 	wg.Wait()
 
-	if end > int(video.Duration.Seconds()) {
-		end = int(video.Duration.Seconds())
+	if duration > video.Duration.Seconds()-start {
+		duration = video.Duration.Seconds() - start
 	}
 
-	args := []string{
-		"-i",
+	err = encodeVideo(
 		fmt.Sprintf("%s/video.mp4", destFolder),
-		"-i",
 		fmt.Sprintf("%s/audio.mp4", destFolder),
-		"-vf",
-		"crop=ih:ih,scale=512:512",
-		"-ss",
-		strconv.Itoa(start),
-		"-t",
-		strconv.Itoa(end),
-		"-c:v",
-		"libx264",
-		"-c:a",
-		"aac",
-		"-preset",
-		"ultrafast",
 		fmt.Sprintf("%s/output.mp4", destFolder),
-	}
-
-	cmd := exec.Command(
-		"ffmpeg",
-		args...,
+		strconv.FormatFloat(start, 'f', 3, 64),
+		strconv.FormatFloat(duration, 'f', 3, 64),
 	)
-
-	// Захватываем stderr для диагностики ошибок
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	err = cmd.Run()
 	if err != nil {
-		return "", "", fmt.Errorf("ffmpeg merge failed: %w, stderr: %s", err, stderr.String())
+		return "", "", err
 	}
+
 	return video.Title, destFolder, nil
 }
