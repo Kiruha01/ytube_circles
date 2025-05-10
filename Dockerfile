@@ -8,7 +8,7 @@ RUN apk add --no-cache git
 WORKDIR /app
 
 # Копируем go.mod и go.sum для кэширования зависимостей
-COPY go.mod ./
+COPY go.mod go.sum ./
 RUN go mod download
 
 # Копируем исходный код
@@ -16,6 +16,8 @@ COPY . .
 
 # Компилируем приложение статически
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o video-downloader main.go
+
+RUN rm -rf /go/pkg/mod
 
 # Этап 2: Финальный образ на базе Alpine
 FROM alpine:3.18

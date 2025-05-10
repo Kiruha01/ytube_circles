@@ -2,13 +2,12 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"go-simpler.org/env"
 	"log"
 	"os"
-	"yttgmem/config"
-	"yttgmem/telegram"
-	"yttgmem/ytVideoMaker"
+	"ytubecircles/config"
+	"ytubecircles/telegram"
+	"ytubecircles/ytVideoMaker"
 )
 
 func main() {
@@ -27,8 +26,6 @@ func main() {
 			panic(err)
 		}
 	}
-
-	fmt.Printf("Hello, %s!\n", config.Config.TelegramBotToken)
 
 	err = ytVideoMaker.InitClient(config.Config.ProxyUrl)
 

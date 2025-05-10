@@ -9,9 +9,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"yttgmem/config"
-	"yttgmem/ytVideoMaker"
+	"ytubecircles/config"
+	"ytubecircles/ytVideoMaker"
 )
+
+const DefaultDuration = 60.0
 
 type UserLinkRequest struct {
 	videoUrl string
@@ -76,13 +78,13 @@ func parseUserLink(text string) (*UserLinkRequest, error) {
 
 	videoUrl := parsed[1]
 	timeStart := 0.0
-	duration := 60.0
+	duration := DefaultDuration
 
 	if parsed[2] != "" {
 		newStart, err := parseTimeString(parsed[2])
 		if err != nil {
 			log.Printf("Failed to parse time: %v", err)
-			newStart = 0
+			return nil, fmt.Errorf("failed to parse time: %v", err)
 		}
 		timeStart = newStart
 	}
@@ -91,7 +93,7 @@ func parseUserLink(text string) (*UserLinkRequest, error) {
 		newDuration, err := parseTimeString(parsed[3])
 		if err != nil {
 			log.Printf("Failed to parse duration: %v", err)
-			newDuration = 60
+			return nil, fmt.Errorf("failed to parse time: %v", err)
 		}
 		duration = newDuration
 	}
@@ -99,18 +101,20 @@ func parseUserLink(text string) (*UserLinkRequest, error) {
 	return &UserLinkRequest{videoUrl, timeStart, duration}, nil
 }
 
-func (b *Bot) processVideo(update tgbotapi.Update) {
+func (b *Bot) processVideo(update tgbotapi.Update) error {
 	videoParams, err := parseUserLink(update.Message.Text)
 	if err != nil {
 		log.Printf("Failed to parse user link: %v", err)
 		b.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Unable to recognize link"))
-		return
+		return err
 	}
 
-	title, destFolder, err := ytVideoMaker.DownloadVideoAndAudio(videoParams.videoUrl, config.Config.StoragePath, videoParams.start, videoParams.duration)
+	directoryPrefix := fmt.Sprintf("%s_%d_%d", config.Config.StoragePath, update.Message.Chat.ID, time.Now().Unix())
+
+	title, destFolder, err := ytVideoMaker.DownloadVideoAndAudio(videoParams.videoUrl, directoryPrefix, videoParams.start, videoParams.duration)
 	if err != nil {
 		b.sendErrorMessage(update.Message.Chat.ID, err)
-		return
+		return err
 	}
 	defer os.RemoveAll(destFolder)
 
@@ -120,10 +124,11 @@ func (b *Bot) processVideo(update tgbotapi.Update) {
 	if err != nil {
 		log.Printf("Failed to send video: %v", err)
 		b.sendErrorMessage(update.Message.Chat.ID, err)
+		return err
 	} else {
 		b.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, title))
 	}
 
 	log.Printf("Video sent: %v", msg)
-
+	return nil
 }

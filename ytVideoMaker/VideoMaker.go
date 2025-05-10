@@ -2,6 +2,7 @@ package ytVideoMaker
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/kkdai/youtube/v2"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"ytubecircles/config"
 )
 
 var (
@@ -23,13 +25,16 @@ var (
 func InitClient(proxyUrl string) error {
 	var initErr error
 	clientOnce.Do(func() {
-		proxy, err := url.Parse(proxyUrl)
-		if err != nil {
-			initErr = fmt.Errorf("failed to parse proxy URL: %w", err)
-			return
-		}
+		httpCustomClient := http.DefaultClient
 
-		httpCustomClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxy)}}
+		if proxyUrl != "" {
+			proxy, err := url.Parse(proxyUrl)
+			if err != nil {
+				initErr = fmt.Errorf("failed to parse proxy URL: %w", err)
+				return
+			}
+			httpCustomClient = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxy)}}
+		}
 		ytClient = &youtube.Client{HTTPClient: httpCustomClient}
 	})
 	return initErr
@@ -84,7 +89,7 @@ func encodeVideo(videoFile string, audioFile string, outFile string, start strin
 	}
 
 	cmd := exec.Command(
-		"ffmpeg",
+		config.Config.FFMPEGBin,
 		args...,
 	)
 
@@ -101,7 +106,7 @@ func encodeVideo(videoFile string, audioFile string, outFile string, start strin
 	return nil
 }
 
-// Reeturn Title, destinarion folder, error
+// DownloadVideoAndAudio загружает видео и аудио с YouTube, обрабатывает их и возвращает заголовок видео и путь к итоговому файлу.
 func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start float64, duration float64) (string, string, error) {
 	video, err := ytClient.GetVideo(videoUrl)
 	if err != nil {
@@ -111,11 +116,21 @@ func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start float
 	destFolder := fmt.Sprintf("%s_%s_%d_%d", destFolderPrefix, video.ID, start, duration)
 	err = os.Mkdir(destFolder, os.ModePerm)
 	if err != nil {
-		panic(err)
+		rem_err := os.RemoveAll(destFolder)
+		if rem_err != nil {
+			return "", "", fmt.Errorf("failed to remove folder %s: %v", destFolder, rem_err)
+		}
+		err = os.Mkdir(destFolder, os.ModePerm)
+		if err != nil {
+			return "", "", err
+		}
 	}
 
 	// save audio.mp4
 	formats := video.Formats.WithAudioChannels()
+	if len(formats) == 0 {
+		return "", "", errors.New("no suitable audio formats found")
+	}
 	bestAudioFormat := formats[0]
 	for _, format := range formats {
 		if format.AverageBitrate > bestAudioFormat.AverageBitrate {
@@ -127,6 +142,9 @@ func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start float
 	formats = video.Formats.Select(func(format youtube.Format) bool {
 		return format.Width != 0
 	})
+	if len(formats) == 0 {
+		return "", "", errors.New("no suitable video formats found")
+	}
 	bestVideoFormat := formats[0]
 	for _, format := range formats {
 		if format.Height < 512 && (bestVideoFormat.Height < format.Height || bestVideoFormat.Height > 512) {
@@ -139,8 +157,6 @@ func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start float
 	wg.Add(2)
 	go downloadFormat(video, &bestAudioFormat, destFolder+"/audio.mp4", wg)
 	go downloadFormat(video, &bestVideoFormat, destFolder+"/video.mp4", wg)
-	defer os.Remove(fmt.Sprintf("%s/video.mp4", destFolder))
-	defer os.Remove(fmt.Sprintf("%s/audio.mp4", destFolder))
 	wg.Wait()
 
 	if duration > video.Duration.Seconds()-start {

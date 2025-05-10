@@ -4,7 +4,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"net/http"
-	"yttgmem/config"
+	"ytubecircles/config"
 )
 
 type WebHookBot struct {

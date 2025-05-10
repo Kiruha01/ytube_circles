@@ -61,7 +61,10 @@ if [ "$PUSH_NEW" = "n" ] || [ "$PUSH_NEW" = "N" ]; then
     echo "Новый тег ${NEW_TAG} не будет отправлен"
 else
     echo "Отправляем новый тег ${NEW_TAG} в реестр..."
-    docker push "${NEW_TAG}"
+    if ! docker push "${NEW_TAG}"; then
+      echo "Ошибка при отправке тега ${NEW_TAG}"
+      exit 1
+    fi
 fi
 
 # Если latest обновлён, запрос на его пуш
@@ -69,7 +72,10 @@ if [ "$UPDATE_LATEST" = "y" ] || [ "$UPDATE_LATEST" = "Y" ]; then
     PUSH_LATEST=$(get_answer "Отправить тег latest в реестр? (Y/n): ")
     if [ "$PUSH_LATEST" = "y" ] || [ "$PUSH_LATEST" = "Y" ]; then
         echo "Отправляем тег latest в реестр..."
-        docker push "${LATEST_TAG}"
+        if ! docker push "${LATEST_TAG}"; then
+          echo "Ошибка при отправке тега ${NEW_TAG}"
+          exit 1
+        fi
     else
         echo "Тег latest не будет отправлен"
     fi

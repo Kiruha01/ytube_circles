@@ -14,9 +14,9 @@ func (b *Bot) handleHelp(update tgbotapi.Update) {
 		Text: "This bot convert YouTube video to Video\\-Message circle by link to video and time " +
 			"start and time end markers\n\n" +
 			"```\nYT-link [time-start [duration]]\n```\n*Examples:*\n" +
-			"```\nhttps://youtu.be/dQw4w9WgXcQ 00:00:43 00:00:10\n```For rick roll from 43 to 53 seconds\n" +
-			"```\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ 00:00:43 10\n```For rick roll from 43 to 53 seconds\n" +
-			"```\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ 43\n```For rick roll from 43 to 103 seconds (60 seconds by default and max)\n" +
+			"```\nhttps://youtu.be/dQw4w9WgXcQ 00:00:43.5 00:00:10\n```For rick roll from 43.5 to 53 seconds\n" +
+			"```\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ 00:00:43 10.5\n```For rick roll from 43 to 53.5 seconds\n" +
+			"```\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ 43.5\n```For rick roll from 43.5 to 103.5 seconds (60 seconds by default and max)\n" +
 			"```\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ\n```For rick roll from 0 to 60 seconds",
 		ParseMode:             "Markdown",
 		DisableWebPagePreview: false,

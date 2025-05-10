@@ -4,7 +4,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
-	"yttgmem/config"
+	"ytubecircles/config"
 )
 
 type BotInterface interface {
@@ -55,7 +55,7 @@ func (b *Bot) processUpdates(updates tgbotapi.UpdatesChannel) error {
 			}
 
 			if update.Message.Text == "" {
-				log.Println("Text is empty")
+				log.Printf("User: %s,  Text is empty", update.Message.From.UserName)
 				return
 			}
 
