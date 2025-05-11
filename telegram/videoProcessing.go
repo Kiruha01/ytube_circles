@@ -109,7 +109,7 @@ func (b *Bot) processVideo(update tgbotapi.Update) error {
 		return err
 	}
 
-	directoryPrefix := fmt.Sprintf("%s_%d_%d", config.Config.StoragePath, update.Message.Chat.ID, time.Now().Unix())
+	directoryPrefix := fmt.Sprintf("%s/%d_%d", config.Config.StoragePath, update.Message.Chat.ID, time.Now().Unix())
 
 	title, destFolder, err := ytVideoMaker.DownloadVideoAndAudio(videoParams.videoUrl, directoryPrefix, videoParams.start, videoParams.duration)
 	if err != nil {

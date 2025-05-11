@@ -64,16 +64,21 @@ func downloadFormat(video *youtube.Video, format *youtube.Format, destination st
 	return nil
 }
 
-func encodeVideo(videoFile string, audioFile string, outFile string, start string, end string) error {
+func encodeVideo(videoFormat *youtube.Format, videoFile string, audioFile string, outFile string, start string, end string) error {
+	var cropMode string
+	if videoFormat.Height > videoFormat.Width {
+		cropMode = "crop=iw:iw,scale=512:512"
+	} else {
+		cropMode = "crop=ih:ih,scale=512:512"
+	}
+
 	args := []string{
 		"-i",
 		videoFile,
-		//fmt.Sprintf("%s/video.mp4", destFolder),
 		"-i",
 		audioFile,
-		//fmt.Sprintf("%s/audio.mp4", destFolder),
 		"-vf",
-		"crop=ih:ih,scale=512:512",
+		cropMode,
 		"-ss",
 		start,
 		"-t",
@@ -85,7 +90,6 @@ func encodeVideo(videoFile string, audioFile string, outFile string, start strin
 		"-preset",
 		"ultrafast",
 		outFile,
-		//fmt.Sprintf("%s/output.mp4", destFolder),
 	}
 
 	cmd := exec.Command(
@@ -113,7 +117,7 @@ func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start float
 		return "", "", err
 	}
 
-	destFolder := fmt.Sprintf("%s_%s_%d_%d", destFolderPrefix, video.ID, start, duration)
+	destFolder := fmt.Sprintf("%s_%s_%f_%f", destFolderPrefix, video.ID, start, duration)
 	err = os.Mkdir(destFolder, os.ModePerm)
 	if err != nil {
 		rem_err := os.RemoveAll(destFolder)
@@ -164,6 +168,7 @@ func DownloadVideoAndAudio(videoUrl string, destFolderPrefix string, start float
 	}
 
 	err = encodeVideo(
+		&bestVideoFormat,
 		fmt.Sprintf("%s/video.mp4", destFolder),
 		fmt.Sprintf("%s/audio.mp4", destFolder),
 		fmt.Sprintf("%s/output.mp4", destFolder),
